@@ -1,5 +1,7 @@
 from operator import attrgetter
 
+import json
+
 from ryu.app import simple_switch_13
 from ryu.controller import ofp_event
 from ryu.controller.handler import set_ev_cls
@@ -22,8 +24,8 @@ class Mymonitor13(simple_switch_13.SimpleSwitch13):
     # it will be triggered.
     # datapath's state turn to MAIN_DISPATCHER,means switch is  registered and been watched.
     # datapath's state turn to DEAD_DISPATCHER,means switch is un-registered.
-    @set_ev_cls(ofp_event.EventOFPPortStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
-    def _state_chan_handler(self, ev):
+    @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
+    def _state_change_handler(self, ev):
         datapath = ev.datapath
         if ev.state == MAIN_DISPATCHER:
             # switch is online.
@@ -52,7 +54,7 @@ class Mymonitor13(simple_switch_13.SimpleSwitch13):
     def _request_stats(self, datapath):
         self.logger.debug("send stats request to datapath: 16%x",datapath.id)
         ofproto = datapath.ofproto
-        ofp_parser = datapath.ofp_parser
+        ofp_parser = datapath.ofproto_parser
 
         # send port stats request msg.
         # OFPPortStatsRequest requests that the switch provide port-related statistical info.
@@ -87,6 +89,13 @@ class Mymonitor13(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         body = ev.msg.body
+
+        # body is an attribute in OFPFlowStatsReply(is a FlowStats' list),
+        # and it's storage each flow-entry statical info.
+        # here,use json to show what is in body
+        self.logger.info('%s', json.dumps(ev.msg.to_jsondict(), ensure_ascii=True, indent=3,
+                                         sort_keys=True))
+
 
         self.logger.info('datapath                    '
                          'in_port           eth-dst                '
