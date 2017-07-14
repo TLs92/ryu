@@ -55,13 +55,14 @@ class Mymonitor13(simple_switch_13.SimpleSwitch13):
         ofp_parser = datapath.ofp_parser
 
         # send port stats request msg.
-        # OFPPortStatsRequest requests that the switch provide statistical info related to flow entry.
-        req = ofp_parser.OFPPortStatsRequest(datapath)
+        # OFPPortStatsRequest requests that the switch provide port-related statistical info.
+        # can specify the desired port number.here, OFPP_ANY means all ports.
+        req = ofp_parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
         datapath.send_msg(req)
 
         # sned flow stats request msg.
-        # OFPFlowStatsRequest requests that the switch provide statistical info related to flow entry.
-        req = ofp_parser.OFPFlowStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+        # OFPFlowStatsRequest requests that the switch provide port-related statistical info related to flow entry.
+        req = ofp_parser.OFPFlowStatsRequest(datapath)
         datapath.send_msg(req)
 
     #handle the port stats reply msg.
