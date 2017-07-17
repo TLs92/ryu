@@ -33,6 +33,7 @@ class Hub(app_manager.RyuApp):
                                             actions)]
         mod = ofp_parser.OFPFlowMod(datapath=datapath, priority=priority,
                                match=match, instructions=inst)
+        print ('addflow   ' + '%s', datapath.id)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)

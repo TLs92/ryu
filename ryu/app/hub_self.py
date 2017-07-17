@@ -1,4 +1,3 @@
-#-*- coding: utf0-8 -*-
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
 from ryu.controller import ofp_event
@@ -23,8 +22,8 @@ class Hub(app_manager.RyuApp):
 
         # install the table-miss flow entry
         match = ofp_parser.OFPMatch()
-        actions = [ofp_parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,      # 发送端口
-                                             ofproto.OFPCML_NO_BUFFER)]     # 不存
+        actions = [ofp_parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,      # sending port
+                                             ofproto.OFPCML_NO_BUFFER)]     # not saving buffer
 
         self.add_flow(datapath, 0, match, actions)
 
@@ -39,7 +38,7 @@ class Hub(app_manager.RyuApp):
                                                  actions)]
         mod = ofp_parser.OFPFlowMod(datapath = datapath, priority = priority,
                                     match = match, instructions = inst)
-
+        print ('addflow   ' + '%s',datapath.id)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
