@@ -91,7 +91,6 @@ class shortest_forwarding(app_manager.RyuApp):
             next_hop = path[path.index(dpid)+1]
             out_port = self.network[dpid][next_hop]['port']
 
-
         else:
             out_port = datapath.ofproto.OFPP_FLOOD
 
