@@ -1,3 +1,6 @@
+print('\n\n\n cmd.manager start!')
+
+
 #!/usr/bin/env python
 #
 # Copyright (C) 2011, 2012 Nippon Telegraph and Telephone Corporation.
@@ -19,14 +22,19 @@
 from ryu.lib import hub
 hub.patch(thread=False)
 
-
-
+# TODO:
+#   Right now, we have our own patched copy of ovs python bindings
+#   Once our modification is upstreamed and widely deployed,
+#   use it
+#
+# NOTE: this modifies sys.path and thus affects the following imports.
 import ryu.contrib
 ryu.contrib.update_module_path()
 
 from ryu import cfg
-
 import logging
+import sys
+
 from ryu import log
 log.early_init_log(logging.DEBUG)
 
@@ -36,6 +44,7 @@ from ryu.app import wsgi
 from ryu.base.app_manager import AppManager
 from ryu.controller import controller
 from ryu.topology import switches
+
 
 
 CONF = cfg.CONF
@@ -54,6 +63,8 @@ CONF.register_cli_opts([
 ])
 
 
+
+
 def main(args=None, prog=None):
     try:
         CONF(args=args, prog=prog,
@@ -64,11 +75,11 @@ def main(args=None, prog=None):
              project='ryu', version='ryu-manager %s' % version)
 
     log.init_log()
-    logger = logging.getLogger(__name__)
 
     if CONF.enable_debugger:
+        LOG = logging.getLogger('ryu.cmd.manager')
         msg = 'debugging is available (--enable-debugger option is turned on)'
-        logger.info(msg)
+        LOG.info(msg)
     else:
         hub.patch(thread=True)
 
@@ -77,20 +88,19 @@ def main(args=None, prog=None):
         with open(CONF.pid_file, 'w') as pid_file:
             pid_file.write(str(os.getpid()))
 
-    #CONF.app = ['main']
 
     app_lists = CONF.app_lists + CONF.app
-    # keep old behavior, run ofp if no application is specified.
+    # keep old behaivor, run ofp if no application is specified.
 
-    print('1 CONF.app_lists', CONF.app_lists)
+    print('1 CONF.app_lists',CONF.app_lists)
 
-    print('CONF.app', CONF.app, type(CONF.app))
-
+    print('CONF.app',CONF.app, type(CONF.app))
 
     if not app_lists:
         app_lists = ['ryu.controller.ofp_handler']
 
-        print('2 CONF.app_lists', CONF.app_lists)
+    print('2 CONF.app_lists',CONF.app_lists)
+
 
     app_mgr = AppManager.get_instance()
     app_mgr.load_apps(app_lists)
@@ -105,9 +115,6 @@ def main(args=None, prog=None):
 
     try:
         hub.joinall(services)
-    except KeyboardInterrupt:
-        logger.debug("Keyboard Interrupt received. "
-                     "Closing RYU application manager...")
     finally:
         app_mgr.close()
 

@@ -1,7 +1,7 @@
 from operator import attrgetter
 
 import json
-from ryu.base import app_manager
+
 from ryu.app import simple_switch_13
 from ryu.controller import ofp_event
 from ryu.controller.handler import set_ev_cls
@@ -9,7 +9,7 @@ from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.lib import hub
 
 
-class Mymonitor13(app_manager.RyuApp):
+class Mymonitor13(simple_switch_13.SimpleSwitch13):
     '''this is a simple monitor'''
 
     def __init__(self, *args, **kwargs):

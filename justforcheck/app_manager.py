@@ -1,3 +1,5 @@
+print('ryu.base.app_manager start!')
+
 # Copyright (C) 2011-2014 Nippon Telegraph and Telephone Corporation.
 # Copyright (C) 2011 Isaku Yamahata <yamahata at valinux co jp>
 #
@@ -156,9 +158,7 @@ class RyuApp(object):
         self.event_handlers = {}        # ev_cls -> handlers:list
         self.observers = {}     # ev_cls -> observer-name -> states:set
         self.threads = []
-        self.main_thread = None
         self.events = hub.Queue(128)
-        self._events_sem = hub.BoundedSemaphore(self.events.maxsize)
         if hasattr(self.__class__, 'LOGGER_NAME'):
             self.logger = logging.getLogger(self.__class__.LOGGER_NAME)
         else:
@@ -178,19 +178,9 @@ class RyuApp(object):
         self.threads.append(hub.spawn(self._event_loop))
 
     def stop(self):
-        if self.main_thread:
-            hub.kill(self.main_thread)
         self.is_active = False
         self._send_event(self._event_stop, None)
         hub.joinall(self.threads)
-
-    def set_main_thread(self, thread):
-        """
-        Set self.main_thread so that stop() can terminate it.
-
-        Only AppManager.instantiate_apps should call this function.
-        """
-        self.main_thread = thread
 
     def register_handler(self, ev_cls, handler):
         assert callable(handler)
@@ -281,25 +271,13 @@ class RyuApp(object):
     def _event_loop(self):
         while self.is_active or not self.events.empty():
             ev, state = self.events.get()
-            self._events_sem.release()
             if ev == self._event_stop:
                 continue
             handlers = self.get_handlers(ev, state)
             for handler in handlers:
-                try:
-                    handler(ev)
-                except hub.TaskExit:
-                    # Normal exit.
-                    # Propagate upwards, so we leave the event loop.
-                    raise
-                except:
-                    LOG.exception('%s: Exception occurred during handler processing. '
-                                  'Backtrace from offending handler '
-                                  '[%s] servicing event [%s] follows.',
-                                  self.name, handler.__name__, ev.__class__.__name__)
+                handler(ev)
 
     def _send_event(self, ev, state):
-        self._events_sem.acquire()
         self.events.put((ev, state))
 
     def send_event(self, name, ev, state=None):
@@ -349,7 +327,7 @@ class RyuApp(object):
 
 
 class AppManager(object):
-    # singleton
+    # singletone
     _instance = None
 
     @staticmethod
@@ -386,13 +364,13 @@ class AppManager(object):
         self.applications = {}
         self.contexts_cls = {}
         self.contexts = {}
-        self.close_sem = hub.Semaphore()
 
         self.count = 0
 
+
     def load_app(self, name):
         print('in load_app!\n')
-        print('app_manager!', '1', name)
+
         mod = utils.import_module(name)
         clses = inspect.getmembers(mod,
                                    lambda cls: (inspect.isclass(cls) and
@@ -401,7 +379,13 @@ class AppManager(object):
                                                 cls.__module__))
         if clses:
             return clses[0][1]
+
+
+        print('app_manager!', '1', name)
+
+
         return None
+
 
     def load_apps(self, app_lists):
         app_lists = [app for app
@@ -416,9 +400,9 @@ class AppManager(object):
         while len(app_lists) > 0:
             app_cls_name = app_lists.pop(0)
 
-            print('len:', len(app_lists))
-            self.count = self.count + 1
-            print("app_cls_name", self.count, ' ', app_cls_name)
+            print('len:',len(app_lists))
+            self.count = self.count+1
+            print("app_cls_name",self.count,' ', app_cls_name)
 
             context_modules = [x.__module__ for x in self.contexts_cls.values()]
             if app_cls_name in context_modules:
@@ -426,7 +410,8 @@ class AppManager(object):
 
             LOG.info('loading app %s', app_cls_name)
 
-            print("app_lists in app_manager!", 'count:', self.count, app_lists)
+            print("app_lists in app_manager!", 'count:',self.count, app_lists)
+
 
 
 
@@ -451,7 +436,7 @@ class AppManager(object):
                 if i not in context_modules:
                     services.append(i)
             if services:
-                app_lists.extend([s for s in set(services)     # create a set to avoid sames service add to app_lists
+                app_lists.extend([s for s in set(services)
                                   if s not in app_lists])
 
     def create_contexts(self):
@@ -533,7 +518,6 @@ class AppManager(object):
         for app in self.applications.values():
             t = app.start()
             if t is not None:
-                app.set_main_thread(t)
                 threads.append(t)
         return threads
 
@@ -552,7 +536,7 @@ class AppManager(object):
         self._close(app)
         events = app.events
         if not events.empty():
-            app.logger.debug('%s events remains %d', app.name, events.qsize())
+            app.logger.debug('%s events remians %d', app.name, events.qsize())
 
     def close(self):
         def close_all(close_dict):
@@ -560,10 +544,7 @@ class AppManager(object):
                 self._close(app)
             close_dict.clear()
 
-        # This semaphore prevents parallel execution of this function,
-        # as run_apps's finally clause starts another close() call.
-        with self.close_sem:
-            for app_name in list(self.applications.keys()):
-                self.uninstantiate(app_name)
-            assert not self.applications
-            close_all(self.contexts)
+        for app_name in list(self.applications.keys()):
+            self.uninstantiate(app_name)
+        assert not self.applications
+        close_all(self.contexts)
