@@ -16,7 +16,7 @@ class SDRouteS(app_manager.RyuApp):
 
 
 
-# app_manager.require_app('ryu.topology.switches')
+app_manager.require_app('ryu.app.ofctl_rest')           #to support rest_api
 app_manager.require_app('ryu.app.myapp.mymonitor13')
 app_manager.require_app('ryu.app.myapp.shortest_forwarding')
 # app_manager.require_app('ryu.app.gui_topology_ddos.gui_topology_ddos')
